@@ -63,7 +63,7 @@ export const analyzeFoodImage = async (base64Image: string): Promise<NutritionDa
       contents: {
         parts: [
           { inlineData: { mimeType: "image/jpeg", data: cleanBase64 } },
-          { text: "Você é um nutricionista brasileiro. Analise a imagem. Identifique o alimento, peso, macros, ingredientes e saúde (0-10). Responda estritamente com o JSON." },
+          { text: "Você é um nutricionista brasileiro. Analise a imagem detalhadamente. Identifique **TODOS** os alimentos e bebidas presentes (ex: pratos, copos, latas, garrafas, acompanhamentos). Some os macros de todos os itens. No campo 'foodName', descreva o combo (ex: 'Hambúrguer com Refrigerante' ou 'Café com Pão'). No campo 'ingredients', liste todos os itens e bebidas identificados." },
         ],
       },
       config: {

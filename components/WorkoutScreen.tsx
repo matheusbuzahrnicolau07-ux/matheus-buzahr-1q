@@ -3,16 +3,18 @@ import React, { useState, useEffect } from 'react';
 import { User, WorkoutSession, WorkoutSplit } from '../types';
 import { generateWorkoutRoutine } from '../services/geminiService';
 import { storageService } from '../services/storage';
-import { DumbbellIcon, SparklesIcon, ChevronLeftIcon, CheckCircleIcon, CircleIcon, HistoryIcon, CalendarIcon } from './Icons';
+import { DumbbellIcon, SparklesIcon, ChevronLeftIcon, CheckCircleIcon, CircleIcon, HistoryIcon, CalendarIcon, SaveIcon } from './Icons';
 
 interface WorkoutScreenProps {
   user: User;
   onBack: () => void;
+  date: Date;
 }
 
-const WorkoutScreen: React.FC<WorkoutScreenProps> = ({ user, onBack }) => {
+const WorkoutScreen: React.FC<WorkoutScreenProps> = ({ user, onBack, date }) => {
   const [activeTab, setActiveTab] = useState<'today' | 'history'>('today');
   const [loading, setLoading] = useState(false);
+  const [isFinishing, setIsFinishing] = useState(false);
   
   // Creation State
   const [selectedSplit, setSelectedSplit] = useState<WorkoutSplit>('ABC');
@@ -27,22 +29,26 @@ const WorkoutScreen: React.FC<WorkoutScreenProps> = ({ user, onBack }) => {
   // Init
   useEffect(() => {
     loadWorkouts();
-  }, [user.id]);
+  }, [user.id, date]); // Reload when date changes
 
   const loadWorkouts = async () => {
     try {
         const workouts = await storageService.getWorkouts(user.id);
         setWorkoutHistory(workouts);
 
-        // Check if there is a workout for today
-        const today = new Date().setHours(0,0,0,0);
+        // Check if there is a workout for the SELECTED date
+        const targetDate = new Date(date).setHours(0,0,0,0);
+        
         const todayWorkout = workouts.find(w => {
             const wDate = new Date(w.timestamp).setHours(0,0,0,0);
-            return wDate === today;
+            return wDate === targetDate;
         });
 
-        if (todayWorkout) {
+        // Only set as current if it's NOT completed, or if we want to allow editing completed ones today
+        if (todayWorkout && !todayWorkout.completed) {
             setCurrentWorkout(todayWorkout);
+        } else {
+            setCurrentWorkout(null);
         }
     } catch (e) {
         console.error("Failed to load workouts", e);
@@ -53,6 +59,14 @@ const WorkoutScreen: React.FC<WorkoutScreenProps> = ({ user, onBack }) => {
       "Peito", "Costas", "Pernas", "Ombros", 
       "Bíceps", "Tríceps", "Abdômen", "Glúteos"
   ];
+
+  const splitLabels: Record<WorkoutSplit, string> = {
+      'FullBody': 'Corpo Inteiro',
+      'UpperLower': 'Superior / Inferior',
+      'ABC': 'ABC (3 dias)',
+      'ABCD': 'ABCD (4 dias)',
+      'ABCDE': 'ABCDE (5 dias)'
+  };
 
   const toggleMuscle = (muscle: string) => {
       setSelectedMuscles(prev => {
@@ -75,11 +89,16 @@ const WorkoutScreen: React.FC<WorkoutScreenProps> = ({ user, onBack }) => {
       try {
           const routine = await generateWorkoutRoutine(user, selectedSplit, muscleString);
           
+          // Use the selected date but keep current time
+          const timestamp = new Date(date);
+          const now = new Date();
+          timestamp.setHours(now.getHours(), now.getMinutes());
+
           const newWorkout: WorkoutSession = {
               ...routine,
               id: Date.now().toString(),
               userId: user.id,
-              timestamp: Date.now(),
+              timestamp: timestamp.getTime(),
               completed: false
           };
 
@@ -99,22 +118,48 @@ const WorkoutScreen: React.FC<WorkoutScreenProps> = ({ user, onBack }) => {
       const updatedExercises = [...currentWorkout.exercises];
       updatedExercises[index].completed = !updatedExercises[index].completed;
       
-      const allCompleted = updatedExercises.every(ex => ex.completed);
-      
       const updatedWorkout = {
           ...currentWorkout,
           exercises: updatedExercises,
-          completed: allCompleted
       };
 
       setCurrentWorkout(updatedWorkout);
-      
-      // Save progress to DB immediately
+      // Save progress to DB immediately (autosave)
       await storageService.saveWorkout(updatedWorkout);
-      
-      // Update history state
-      setWorkoutHistory(prev => prev.map(w => w.id === updatedWorkout.id ? updatedWorkout : w));
   };
+
+  const handleFinishWorkout = async () => {
+      if (!currentWorkout || isFinishing) return;
+      setIsFinishing(true);
+
+      try {
+          const completedWorkout = {
+              ...currentWorkout,
+              completed: true
+          };
+
+          await storageService.saveWorkout(completedWorkout);
+          
+          // Update local history
+          setWorkoutHistory(prev => {
+              const filtered = prev.filter(w => w.id !== completedWorkout.id);
+              return [completedWorkout, ...filtered];
+          });
+
+          // Clear current active workout view
+          setCurrentWorkout(null);
+          
+          // Switch to history tab to show it's done
+          setActiveTab('history');
+      } catch (e) {
+          console.error("Erro ao finalizar treino", e);
+      } finally {
+          setIsFinishing(false);
+      }
+  };
+
+  const isSelectedDateToday = new Date(date).setHours(0,0,0,0) === new Date().setHours(0,0,0,0);
+  const formattedDate = date.toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' });
 
   return (
     <div className="flex flex-col h-full bg-zinc-950 pb-32 no-scrollbar animate-in fade-in duration-300 min-h-screen text-white">
@@ -133,7 +178,7 @@ const WorkoutScreen: React.FC<WorkoutScreenProps> = ({ user, onBack }) => {
                     onClick={() => setActiveTab('today')}
                     className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${activeTab === 'today' ? 'bg-zinc-600 text-white' : 'text-zinc-400'}`}
                 >
-                    Hoje
+                    {isSelectedDateToday ? 'Hoje' : formattedDate}
                 </button>
                 <button 
                     onClick={() => setActiveTab('history')}
@@ -155,21 +200,23 @@ const WorkoutScreen: React.FC<WorkoutScreenProps> = ({ user, onBack }) => {
                                 <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto text-emerald-500 mb-4 border border-emerald-500/20">
                                     <DumbbellIcon className="w-8 h-8" />
                                 </div>
-                                <h3 className="text-2xl font-black">Vamos treinar o que hoje?</h3>
+                                <h3 className="text-2xl font-black">
+                                    {isSelectedDateToday ? "Vamos treinar o que hoje?" : `Treino para ${formattedDate}`}
+                                </h3>
                                 <p className="text-zinc-400 text-sm max-w-xs mx-auto">Selecione até 3 grupos musculares para um treino personalizado.</p>
                             </div>
 
                             <div className="space-y-4">
                                 <div>
                                     <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest ml-2 mb-2 block">Estilo de Divisão</label>
-                                    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
-                                        {(['FullBody', 'UpperLower', 'ABC', 'ABCD', 'ABCDE'] as WorkoutSplit[]).map(split => (
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {(Object.keys(splitLabels) as WorkoutSplit[]).map(split => (
                                             <button
                                                 key={split}
                                                 onClick={() => setSelectedSplit(split)}
-                                                className={`px-5 py-3 rounded-2xl border font-bold text-sm whitespace-nowrap transition-all ${selectedSplit === split ? 'bg-white text-black border-white' : 'bg-zinc-900 border-zinc-800 text-zinc-400'}`}
+                                                className={`px-4 py-3 rounded-2xl border font-bold text-sm transition-all ${selectedSplit === split ? 'bg-white text-black border-white' : 'bg-zinc-900 border-zinc-800 text-zinc-400'}`}
                                             >
-                                                {split}
+                                                {splitLabels[split]}
                                             </button>
                                         ))}
                                     </div>
@@ -219,17 +266,17 @@ const WorkoutScreen: React.FC<WorkoutScreenProps> = ({ user, onBack }) => {
                         </div>
                     ) : (
                         /* Active Workout View */
-                        <div className="space-y-6 animate-in fade-in duration-300">
+                        <div className="space-y-6 animate-in fade-in duration-300 pb-20">
                             <div className="bg-zinc-900 p-6 rounded-[2rem] border border-zinc-800 relative overflow-hidden">
                                 <div className="absolute top-0 right-0 p-4 opacity-10">
                                     <DumbbellIcon className="w-24 h-24 text-white" />
                                 </div>
                                 <div className="relative z-10">
                                     <span className="bg-emerald-500/10 text-emerald-500 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest mb-2 inline-block">
-                                        Treino de Hoje
+                                        Treino do Dia
                                     </span>
                                     <h2 className="text-3xl font-black leading-none mb-1">{currentWorkout.focusGroup}</h2>
-                                    <p className="text-zinc-500 font-medium text-sm">Divisão {currentWorkout.split}</p>
+                                    <p className="text-zinc-500 font-medium text-sm">{splitLabels[currentWorkout.split] || currentWorkout.split}</p>
                                     
                                     <div className="mt-6 flex items-center gap-4">
                                         <div className="flex flex-col">
@@ -265,10 +312,10 @@ const WorkoutScreen: React.FC<WorkoutScreenProps> = ({ user, onBack }) => {
                                                     {exercise.sets} séries
                                                 </span>
                                                 <span className="bg-black/30 px-2 py-1 rounded-md text-xs font-medium text-zinc-400">
-                                                    {exercise.reps} reps
+                                                    {exercise.reps} repetições
                                                 </span>
                                                 <span className="bg-black/30 px-2 py-1 rounded-md text-xs font-medium text-zinc-400">
-                                                    {exercise.rest}
+                                                    {exercise.rest} descanso
                                                 </span>
                                             </div>
                                             
@@ -282,11 +329,20 @@ const WorkoutScreen: React.FC<WorkoutScreenProps> = ({ user, onBack }) => {
                                 ))}
                             </div>
 
-                            {currentWorkout.completed && (
-                                <div className="bg-emerald-500 text-black p-4 rounded-2xl font-bold text-center animate-in zoom-in duration-300">
-                                    🎉 Treino Finalizado! Bom descanso.
-                                </div>
-                            )}
+                            <button
+                                onClick={handleFinishWorkout}
+                                disabled={isFinishing}
+                                className="w-full bg-emerald-500 text-black font-extrabold text-lg py-4 rounded-full shadow-lg shadow-emerald-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-4 mb-8"
+                            >
+                                {isFinishing ? (
+                                    <div className="w-6 h-6 border-2 border-black/30 border-t-black rounded-full animate-spin"></div>
+                                ) : (
+                                    <>
+                                        <CheckCircleIcon className="w-6 h-6" />
+                                        Finalizar Treino
+                                    </>
+                                )}
+                            </button>
                         </div>
                     )}
                 </>
@@ -311,9 +367,11 @@ const WorkoutScreen: React.FC<WorkoutScreenProps> = ({ user, onBack }) => {
                                             </span>
                                         </div>
                                         <h3 className="font-bold text-white text-lg">{workout.focusGroup}</h3>
+                                        <p className="text-xs text-zinc-500 mt-0.5">{splitLabels[workout.split] || workout.split}</p>
                                     </div>
                                     {workout.completed && (
-                                        <span className="bg-emerald-500/10 text-emerald-500 text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wide">
+                                        <span className="bg-emerald-500/10 text-emerald-500 text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wide flex items-center gap-1">
+                                            <CheckCircleIcon className="w-3 h-3" />
                                             Concluído
                                         </span>
                                     )}

@@ -10,7 +10,7 @@ import OnboardingScreen from './components/OnboardingScreen';
 import WaterModal from './components/WaterModal';
 import WorkoutScreen from './components/WorkoutScreen';
 import AuthScreen from './components/AuthScreen';
-import { HistoryIcon, LeafIcon, HomeIcon, PlusIcon, FireIcon, SettingsIcon, DropletIcon, ChevronLeftIcon, CheckCircleIcon, SaveIcon, ArrowRightIcon, RefreshIcon, ArrowLeftIcon, CalendarIcon, DumbbellIcon } from './components/Icons';
+import { HistoryIcon, LeafIcon, HomeIcon, PlusIcon, FireIcon, SettingsIcon, DropletIcon, ChevronLeftIcon, CheckCircleIcon, SaveIcon, ArrowRightIcon, RefreshIcon, ArrowLeftIcon, CalendarIcon, DumbbellIcon, CameraIcon, PhotoIcon, XMarkIcon } from './components/Icons';
 import { PieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 
 // Default Goals
@@ -35,6 +35,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [selectedMealType, setSelectedMealType] = useState<MealType | null>(null); 
   const [theme, setTheme] = useState<Theme>('dark');
+  const [isScanOptionsOpen, setIsScanOptionsOpen] = useState(false);
   
   // Water Tracker State
   const [waterIntake, setWaterIntake] = useState(0);
@@ -51,7 +52,8 @@ function App() {
   const [isScrolled, setIsScrolled] = useState(false);
 
   // Refs
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
   // Initialize
   useEffect(() => {
@@ -211,7 +213,7 @@ function App() {
 
   const handleInitiateScan = (type: MealType) => {
       setSelectedMealType(type);
-      fileInputRef.current?.click();
+      setIsScanOptionsOpen(true);
   };
 
   const handleGenericScan = () => {
@@ -223,7 +225,17 @@ function App() {
       else type = 'snack';
       
       setSelectedMealType(type);
-      fileInputRef.current?.click();
+      setIsScanOptionsOpen(true);
+  };
+
+  const handleCameraSelect = () => {
+    setIsScanOptionsOpen(false);
+    cameraInputRef.current?.click();
+  };
+
+  const handleGallerySelect = () => {
+    setIsScanOptionsOpen(false);
+    galleryInputRef.current?.click();
   };
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -247,7 +259,8 @@ function App() {
         setView('home');
       } finally {
         setIsLoading(false);
-        if (fileInputRef.current) fileInputRef.current.value = '';
+        if (cameraInputRef.current) cameraInputRef.current.value = '';
+        if (galleryInputRef.current) galleryInputRef.current.value = '';
       }
     };
     reader.readAsDataURL(file);
@@ -373,10 +386,10 @@ function App() {
         month: 'long' 
     });
 
-    return { totalCals, totalProtein, totalCarbs, totalFat, remaining, dayMeals, goals, groupedMeals, relativeLabel, formattedDate };
+    return { totalCals, totalProtein, totalCarbs, totalFat, remaining, dayMeals, goals, groupedMeals, relativeLabel, formattedDate, displayDate };
   };
 
-  const { totalCals, totalProtein, totalCarbs, totalFat, remaining, dayMeals, goals, groupedMeals, relativeLabel, formattedDate } = getTodayStats();
+  const { totalCals, totalProtein, totalCarbs, totalFat, remaining, dayMeals, goals, groupedMeals, relativeLabel, formattedDate, displayDate } = getTodayStats();
   
   const progressData = [
       { day: 'Seg', weight: 68.2 },
@@ -501,6 +514,40 @@ function App() {
 
   return (
     <div className={theme}>
+        {/* Scan Options Modal */}
+        {isScanOptionsOpen && (
+             <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 animate-in fade-in duration-200">
+                <div 
+                    className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                    onClick={() => setIsScanOptionsOpen(false)}
+                ></div>
+                <div className="bg-white dark:bg-zinc-900 w-full max-w-sm rounded-[2rem] p-6 relative z-10 shadow-2xl animate-in slide-in-from-bottom-10 border border-zinc-200 dark:border-zinc-800">
+                    <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-xl font-bold text-zinc-900 dark:text-white">Adicionar Refeição</h3>
+                        <button onClick={() => setIsScanOptionsOpen(false)} className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                            <XMarkIcon className="w-5 h-5 text-zinc-500" />
+                        </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <button 
+                            onClick={handleCameraSelect}
+                            className="bg-emerald-500 text-black p-6 rounded-2xl flex flex-col items-center gap-3 active:scale-95 transition-transform shadow-lg shadow-emerald-500/20"
+                        >
+                            <CameraIcon className="w-10 h-10" />
+                            <span className="font-bold">Câmera</span>
+                        </button>
+                        <button 
+                            onClick={handleGallerySelect}
+                            className="bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white p-6 rounded-2xl flex flex-col items-center gap-3 active:scale-95 transition-transform"
+                        >
+                            <PhotoIcon className="w-10 h-10" />
+                            <span className="font-bold">Galeria</span>
+                        </button>
+                    </div>
+                </div>
+             </div>
+        )}
+
         <div className="min-h-screen flex flex-col transition-colors duration-300 bg-gray-50 dark:bg-zinc-950 text-zinc-900 dark:text-white">
             
             <WaterModal 
@@ -577,7 +624,22 @@ function App() {
                         onSelect={handleSelectHistoryItem}
                     />
                     <BottomNav />
-                    <input type="file" ref={fileInputRef} accept="image/*" capture="environment" onChange={handleImageSelect} className="hidden" />
+                    {/* Hidden Inputs for Camera and Gallery */}
+                    <input 
+                        type="file" 
+                        ref={cameraInputRef} 
+                        accept="image/*" 
+                        capture="environment" 
+                        onChange={handleImageSelect} 
+                        className="hidden" 
+                    />
+                    <input 
+                        type="file" 
+                        ref={galleryInputRef} 
+                        accept="image/*" 
+                        onChange={handleImageSelect} 
+                        className="hidden" 
+                    />
                 </>
             )}
 
@@ -586,9 +648,24 @@ function App() {
                     <WorkoutScreen 
                         user={user} 
                         onBack={() => setView('home')} 
+                        date={displayDate}
                     />
                     <BottomNav />
-                    <input type="file" ref={fileInputRef} accept="image/*" capture="environment" onChange={handleImageSelect} className="hidden" />
+                    <input 
+                        type="file" 
+                        ref={cameraInputRef} 
+                        accept="image/*" 
+                        capture="environment" 
+                        onChange={handleImageSelect} 
+                        className="hidden" 
+                    />
+                    <input 
+                        type="file" 
+                        ref={galleryInputRef} 
+                        accept="image/*" 
+                        onChange={handleImageSelect} 
+                        className="hidden" 
+                    />
                 </>
             )}
 
@@ -635,7 +712,21 @@ function App() {
                     </div>
                     
                     <BottomNav />
-                    <input type="file" ref={fileInputRef} accept="image/*" capture="environment" onChange={handleImageSelect} className="hidden" />
+                    <input 
+                        type="file" 
+                        ref={cameraInputRef} 
+                        accept="image/*" 
+                        capture="environment" 
+                        onChange={handleImageSelect} 
+                        className="hidden" 
+                    />
+                    <input 
+                        type="file" 
+                        ref={galleryInputRef} 
+                        accept="image/*" 
+                        onChange={handleImageSelect} 
+                        className="hidden" 
+                    />
                 </div>
             )}
 
@@ -687,7 +778,7 @@ function App() {
                                  <div>
                                      <p className="text-zinc-500 font-bold text-xs uppercase tracking-wider mb-1">Disponível</p>
                                      <div className="flex items-baseline gap-1">
-                                         <h2 className="text-5xl font-black text-zinc-900 dark:text-white tracking-tighter">{Math.round(remaining)}</h2>
+                                         <h2 className="text-5xl font-black text-zinc-900 dark:text-white tracking-tighter" style={{ textShadow: "0 0 20px rgba(255,255,255,0.1)" }}>{Math.round(remaining)}</h2>
                                          <span className="text-zinc-500 font-medium">kcal</span>
                                      </div>
                                      <div className="mt-4 flex gap-4">
@@ -697,19 +788,20 @@ function App() {
                                          </div>
                                          <div>
                                              <p className="text-zinc-500 dark:text-zinc-600 text-[10px] font-bold uppercase">Meta</p>
-                                             <p className="text-emerald-500 font-bold">{goals.calories}</p>
+                                             <p className="text-emerald-400 font-bold">{goals.calories}</p>
                                          </div>
                                      </div>
                                  </div>
                                  
-                                 <div className="h-24 w-24 relative">
+                                 {/* CORREÇÃO DO GRÁFICO CORTADO E EFEITOS DE NEON */}
+                                 <div className="h-32 w-32 relative flex items-center justify-center">
                                     <ResponsiveContainer width="100%" height="100%">
                                         <PieChart>
                                             <Pie 
                                                 data={[{v: totalCals}, {v: remaining}]} 
                                                 cx="50%" cy="50%" 
-                                                innerRadius={36} 
-                                                outerRadius={45} 
+                                                innerRadius={42} 
+                                                outerRadius={52} 
                                                 dataKey="v" 
                                                 startAngle={90} 
                                                 endAngle={-270} 
@@ -717,13 +809,19 @@ function App() {
                                                 cornerRadius={10} 
                                                 paddingAngle={5}
                                             >
-                                                <Cell fill={theme === 'light' ? "#e4e4e7" : "#3f3f46"} opacity={theme === 'light' ? 1 : 0.3} /> 
-                                                <Cell fill="#10B981" /> 
+                                                <Cell fill={theme === 'light' ? "#e4e4e7" : "#27272a"} opacity={theme === 'light' ? 1 : 0.5} /> 
+                                                <Cell 
+                                                    fill="#10B981" 
+                                                    style={{ filter: "drop-shadow(0px 0px 6px rgba(16, 185, 129, 0.6))" }}
+                                                /> 
                                             </Pie>
                                         </PieChart>
                                     </ResponsiveContainer>
                                     <div className="absolute inset-0 flex items-center justify-center">
-                                        <FireIcon className="w-6 h-6 text-emerald-500" />
+                                        <div className="relative">
+                                            <div className="absolute inset-0 bg-emerald-500 blur-lg opacity-30 animate-pulse"></div>
+                                            <FireIcon className="w-8 h-8 text-emerald-400 relative z-10 animate-pulse" />
+                                        </div>
                                     </div>
                                  </div>
                              </div>
@@ -750,7 +848,7 @@ function App() {
                                 </div>
                                 <p className="text-2xl font-black text-zinc-900 dark:text-white">{waterIntake}<span className="text-sm text-blue-400 dark:text-blue-300/70 font-medium ml-1">/{goals.water || 2500}</span></p>
                                 <div className="w-full bg-blue-100 dark:bg-blue-950/50 h-1.5 rounded-full mt-2 overflow-hidden">
-                                    <div className="h-full bg-blue-500 transition-all duration-500" style={{ width: `${Math.min(100, (waterIntake / (goals.water || 2500)) * 100)}%` }}></div>
+                                    <div className="h-full bg-blue-500 transition-all duration-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" style={{ width: `${Math.min(100, (waterIntake / (goals.water || 2500)) * 100)}%` }}></div>
                                 </div>
                             </div>
                         </div>
@@ -763,7 +861,7 @@ function App() {
                                 <p className="text-zinc-500 text-[10px] font-bold uppercase">Proteína</p>
                                 <p className="text-xl font-black text-zinc-900 dark:text-white">{Math.round(totalProtein)}<span className="text-xs text-zinc-500 font-medium">/{goals.protein}g</span></p>
                                 <div className="w-full bg-zinc-100 dark:bg-zinc-800 h-1.5 rounded-full mt-2 overflow-hidden">
-                                     <div className="h-full bg-amber-500 transition-all duration-500" style={{ width: `${Math.min(100, (totalProtein / goals.protein) * 100)}%` }}></div>
+                                     <div className="h-full bg-amber-500 transition-all duration-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" style={{ width: `${Math.min(100, (totalProtein / goals.protein) * 100)}%` }}></div>
                                  </div>
                              </div>
                          </div>
@@ -771,14 +869,14 @@ function App() {
 
                      <div className="grid grid-cols-2 gap-3">
                           <div className="bg-white dark:bg-zinc-900 px-4 py-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 flex items-center gap-3 shadow-sm">
-                              <div className="w-1.5 h-8 bg-emerald-500 rounded-full"></div>
+                              <div className="w-1.5 h-8 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
                               <div>
                                   <p className="text-zinc-500 text-[10px] font-bold uppercase">Carbo</p>
                                   <p className="text-zinc-900 dark:text-white font-bold">{Math.round(totalCarbs)} / {goals.carbs}g</p>
                               </div>
                           </div>
                           <div className="bg-white dark:bg-zinc-900 px-4 py-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 flex items-center gap-3 shadow-sm">
-                              <div className="w-1.5 h-8 bg-blue-500 rounded-full"></div>
+                              <div className="w-1.5 h-8 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
                               <div>
                                   <p className="text-zinc-500 text-[10px] font-bold uppercase">Gordura</p>
                                   <p className="text-zinc-900 dark:text-white font-bold">{Math.round(totalFat)} / {goals.fat}g</p>
@@ -855,7 +953,22 @@ function App() {
                   </div>
 
                   <BottomNav />
-                  <input type="file" ref={fileInputRef} accept="image/*" capture="environment" onChange={handleImageSelect} className="hidden" />
+                  {/* Inputs ocultos para Câmera e Galeria */}
+                  <input 
+                      type="file" 
+                      ref={cameraInputRef} 
+                      accept="image/*" 
+                      capture="environment" 
+                      onChange={handleImageSelect} 
+                      className="hidden" 
+                  />
+                  <input 
+                      type="file" 
+                      ref={galleryInputRef} 
+                      accept="image/*" 
+                      onChange={handleImageSelect} 
+                      className="hidden" 
+                  />
                 </div>
             )}
         </div>
