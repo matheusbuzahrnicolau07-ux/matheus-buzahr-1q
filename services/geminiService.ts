@@ -2,7 +2,23 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { NutritionData, User, WorkoutSession, WorkoutSplit } from "../types";
 
-const genAI = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Função auxiliar para inicializar a IA apenas quando necessário
+// Isso previne que o app quebre na inicialização se o process.env não estiver definido
+const getGenAI = () => {
+  let apiKey = '';
+  try {
+    // Tenta acessar a chave de várias formas para compatibilidade
+    apiKey = process.env.API_KEY || (import.meta as any).env?.VITE_API_KEY || '';
+  } catch (e) {
+    console.warn("Erro ao acessar variáveis de ambiente", e);
+  }
+
+  if (!apiKey) {
+    console.error("API Key não encontrada. Verifique seu arquivo .env ou vite.config.ts");
+  }
+  
+  return new GoogleGenAI({ apiKey });
+};
 
 const analysisSchema: Schema = {
   type: Type.OBJECT,
@@ -79,8 +95,9 @@ const workoutSchema: Schema = {
 export const analyzeFoodImage = async (base64Image: string): Promise<NutritionData> => {
   try {
     const cleanBase64 = base64Image.split(',')[1] || base64Image;
+    const ai = getGenAI(); // Inicializa aqui
 
-    const response = await genAI.models.generateContent({
+    const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: {
         parts: [
@@ -137,7 +154,9 @@ export const generateWorkoutRoutine = async (user: User, split: WorkoutSplit, mu
             Responda APENAS com o JSON.
         `;
 
-        const response = await genAI.models.generateContent({
+        const ai = getGenAI(); // Inicializa aqui
+
+        const response = await ai.models.generateContent({
             model: "gemini-2.5-flash",
             contents: prompt,
             config: {
