@@ -3,8 +3,7 @@
   "name": "nutrivision-ai",
   "compatibility_date": "2024-12-11",
   "assets": {
-    "directory": "./dist",
-    "binding": "ASSETS"
+    "directory": "./dist"
   },
   "observability": {
     "enabled": true
