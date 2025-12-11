@@ -16,6 +16,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  password?: string; // Adicionado para verificação de login
   joinedAt: number;
   
   // Body Stats
@@ -73,7 +74,7 @@ export interface WorkoutSession {
   completed: boolean;
 }
 
-export type AppView = 'welcome' | 'login' | 'onboarding' | 'home' | 'camera' | 'result' | 'history' | 'progress' | 'settings' | 'workout';
+export type AppView = 'welcome' | 'login' | 'onboarding' | 'home' | 'camera' | 'live_camera' | 'result' | 'history' | 'progress' | 'settings' | 'workout';
 
 export interface IconProps {
   className?: string;

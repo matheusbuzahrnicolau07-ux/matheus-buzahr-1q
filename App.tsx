@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { User, NutritionData, AnalysisRecord, AppView, UserGoals, MealType } from './types';
 import { analyzeFoodImage } from './services/geminiService';
@@ -26,6 +25,7 @@ type Theme = 'dark' | 'light';
 
 function App() {
   // State
+  const [isAppInitializing, setIsAppInitializing] = useState(true); // Estado para controlar Splash Screen
   const [view, setView] = useState<AppView>('welcome');
   const [user, setUser] = useState<User | null>(null);
   const [currentImage, setCurrentImage] = useState<string | null>(null);
@@ -36,6 +36,13 @@ function App() {
   const [selectedMealType, setSelectedMealType] = useState<MealType | null>(null); 
   const [theme, setTheme] = useState<Theme>('dark');
   const [isScanOptionsOpen, setIsScanOptionsOpen] = useState(false);
+  
+  // Custom Live Camera State
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const [hasTorch, setHasTorch] = useState(false);
+  const [torchEnabled, setTorchEnabled] = useState(false);
   
   // Water Tracker State
   const [waterIntake, setWaterIntake] = useState(0);
@@ -72,24 +79,39 @@ function App() {
                 // Load full user object from IndexedDB
                 const loadedUser = await storageService.getUser(storedUserId);
                 if (loadedUser) {
+                    // Ensure goals exist
                     if (!loadedUser.goals) loadedUser.goals = DEFAULT_GOALS;
                     setUser(loadedUser);
+                    
+                    // Welcome Notification logic
+                    sendWelcomeNotification(loadedUser.name);
                     
                     // Load History
                     const loadedHistory = await storageService.getAllHistory(storedUserId);
                     setHistory(loadedHistory);
                     
-                    setView('home');
+                    // Check if user has completed onboarding (has weight/height)
+                    if (!loadedUser.weight || !loadedUser.height) {
+                         setView('onboarding');
+                    } else {
+                         setView('home');
+                    }
                 } else {
-                    // Fallback if ID exists but data missing
+                    // Fallback if ID exists but data missing in DB
                     localStorage.removeItem('nutrivision_user_id');
                     setView('welcome');
                 }
             } catch (e) {
                 console.error("Erro ao carregar dados:", e);
+                localStorage.removeItem('nutrivision_user_id');
                 setView('welcome');
             }
+        } else {
+            setView('welcome');
         }
+        
+        // Remove Splash Screen after check
+        setTimeout(() => setIsAppInitializing(false), 500);
     };
     
     initApp();
@@ -116,6 +138,37 @@ function App() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Notification Helper
+  const sendWelcomeNotification = (userName: string) => {
+     if (!('Notification' in window)) return;
+     
+     // Check if we already sent it this session to avoid spam
+     if (sessionStorage.getItem('welcome_sent')) return;
+
+     const trigger = () => {
+         try {
+             new Notification("Bem-vindo de volta! 🌿", {
+                 body: `Olá ${userName}, pronto para bater suas metas hoje?`,
+                 icon: 'https://placehold.co/192x192/10b981/ffffff?text=NV',
+                 vibrate: [200, 100, 200]
+             } as any);
+             sessionStorage.setItem('welcome_sent', 'true');
+         } catch (e) {
+             console.log("Notification failed", e);
+         }
+     };
+
+     if (Notification.permission === 'granted') {
+         trigger();
+     } else if (Notification.permission !== 'denied') {
+         Notification.requestPermission().then(permission => {
+             if (permission === 'granted') {
+                 trigger();
+             }
+         });
+     }
+  };
+
   // Check if the currently viewed day is finished
   const checkDayStatus = (dateToCheck: Date) => {
     const dateStr = dateToCheck.toDateString();
@@ -134,6 +187,96 @@ function App() {
       displayDate.setDate(new Date().getDate() + dateOffset);
       checkDayStatus(displayDate);
   }, [dateOffset]);
+
+  // LIVE CAMERA LOGIC
+  useEffect(() => {
+    if (view === 'live_camera') {
+        startCamera();
+    } else {
+        stopCamera();
+    }
+    return () => stopCamera();
+  }, [view]);
+
+  const startCamera = async () => {
+      try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+              video: { facingMode: 'environment' } // Prefer rear camera
+          });
+          setCameraStream(stream);
+          if (videoRef.current) {
+              videoRef.current.srcObject = stream;
+          }
+
+          // Check for torch capability
+          const track = stream.getVideoTracks()[0];
+          const capabilities = track.getCapabilities();
+          // @ts-ignore - torch is not in standard types yet
+          if (capabilities.torch) {
+              setHasTorch(true);
+          }
+      } catch (err) {
+          console.error("Camera error:", err);
+          setError("Erro ao acessar câmera. Verifique permissões.");
+          setView('home');
+      }
+  };
+
+  const stopCamera = () => {
+      if (cameraStream) {
+          cameraStream.getTracks().forEach(track => track.stop());
+          setCameraStream(null);
+      }
+      setHasTorch(false);
+      setTorchEnabled(false);
+  };
+
+  const toggleTorch = () => {
+      if (cameraStream && hasTorch) {
+          const track = cameraStream.getVideoTracks()[0];
+          const newStatus = !torchEnabled;
+          // @ts-ignore
+          track.applyConstraints({ advanced: [{ torch: newStatus }] })
+              .then(() => setTorchEnabled(newStatus))
+              .catch((e: any) => console.error("Torch error", e));
+      }
+  };
+
+  const capturePhoto = () => {
+      if (videoRef.current && canvasRef.current) {
+          const video = videoRef.current;
+          const canvas = canvasRef.current;
+          
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+              const base64 = canvas.toDataURL('image/jpeg', 0.8);
+              processCapturedImage(base64);
+          }
+      }
+  };
+
+  const processCapturedImage = async (base64: string) => {
+      stopCamera(); // Stop live stream
+      setIsLoading(true);
+      setView('camera'); // Show loading screen
+      setCurrentImage(base64);
+
+      try {
+        const result = await analyzeFoodImage(base64);
+        setCurrentAnalysis(result);
+        setView('result');
+      } catch (err: any) {
+        setError("Não foi possível identificar o alimento. Tente uma foto mais clara.");
+        setTimeout(() => setError(null), 4000);
+        setView('home');
+      } finally {
+        setIsLoading(false);
+      }
+  };
 
   const toggleTheme = () => {
       const newTheme = theme === 'dark' ? 'light' : 'dark';
@@ -156,42 +299,80 @@ function App() {
   };
 
   // Handlers
-  const handleAuth = async (email: string, password: string, name?: string) => {
+  const handleAuth = async (emailInput: string, passwordInput: string, name?: string) => {
+    // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 800));
 
+    // 1. Normalize Email
+    const email = emailInput.trim().toLowerCase();
+    const password = passwordInput.trim();
+
+    // 2. Generate ID
     const userId = btoa(email).substring(0, 16); 
 
-    const newUser: User = {
-      id: userId,
-      name: name || email.split('@')[0],
-      email: email,
-      joinedAt: Date.now(),
-      goals: DEFAULT_GOALS,
-      weightGoal: 'maintain',
-      activityLevel: 'moderately_active'
-    };
-
     try {
-        // Try to load existing
-        const existingUser = await storageService.getUser(userId);
+        // 3. Try to load existing user
+        let existingUser = await storageService.getUser(userId);
         
-        if (existingUser && !name) {
+        if (existingUser) {
+            // --- USER EXISTS (LOGIN) ---
+            
+            // VERIFY PASSWORD
+            if (existingUser.password && existingUser.password !== password) {
+                throw new Error("Senha incorreta.");
+            }
+
+            // Update info if re-registering with same email but new name
+            if (name) {
+                existingUser.name = name;
+                existingUser.password = password; // Update password if re-registering
+                await storageService.saveUser(existingUser);
+            } else if (!existingUser.password) {
+                // Legacy user without password, save it now
+                existingUser.password = password;
+                await storageService.saveUser(existingUser);
+            }
+            
             setUser(existingUser);
+            sendWelcomeNotification(existingUser.name);
+            
             // Load history
             const userHistory = await storageService.getAllHistory(userId);
             setHistory(userHistory);
             
+            // Persist Login
             localStorage.setItem('nutrivision_user_id', userId);
-            setView('home');
+
+            // Routing
+            if (!existingUser.weight || !existingUser.height) {
+                setView('onboarding');
+            } else {
+                setView('home');
+            }
+
         } else {
-            // New user or overwriting with name
+            // --- NEW USER (SIGNUP) ---
+            const newUser: User = {
+                id: userId,
+                name: name || email.split('@')[0],
+                email: email,
+                password: password, // Save Password
+                joinedAt: Date.now(),
+                goals: DEFAULT_GOALS,
+                weightGoal: 'maintain',
+                activityLevel: 'moderately_active'
+            };
+
             await storageService.saveUser(newUser);
             setUser(newUser);
+            sendWelcomeNotification(newUser.name);
+            setHistory([]);
             localStorage.setItem('nutrivision_user_id', userId);
             setView('onboarding'); 
         }
     } catch (e) {
         console.error("Auth error", e);
+        throw e; // Rethrow to let AuthScreen handle the error message
     }
   };
 
@@ -200,6 +381,7 @@ function App() {
   };
 
   const handleOnboardingComplete = async (updatedUser: User) => {
+    // This is crucial: We merge the updated data with the existing user ID
     setUser(updatedUser);
     await storageService.saveUser(updatedUser);
     setView('home');
@@ -230,7 +412,8 @@ function App() {
 
   const handleCameraSelect = () => {
     setIsScanOptionsOpen(false);
-    cameraInputRef.current?.click();
+    // Switch to Custom Live Camera view instead of native input to support Flash
+    setView('live_camera');
   };
 
   const handleGallerySelect = () => {
@@ -512,8 +695,64 @@ function App() {
     </div>
   );
 
+  // SPLASH SCREEN FOR SMOOTH AUTO-LOGIN
+  if (isAppInitializing) {
+      return (
+        <div className={`min-h-screen flex flex-col items-center justify-center p-8 text-center bg-zinc-950 ${theme}`}>
+             <div className="w-24 h-24 bg-gradient-to-tr from-emerald-500 to-teal-400 p-6 rounded-[2rem] mb-6 shadow-[0_0_50px_-10px_rgba(16,185,129,0.5)] flex items-center justify-center animate-pulse">
+                <LeafIcon className="w-12 h-12 text-black" />
+            </div>
+        </div>
+      );
+  }
+
   return (
     <div className={theme}>
+        {/* Custom Live Camera View with Torch Control */}
+        {view === 'live_camera' && (
+            <div className="fixed inset-0 bg-black z-[100] flex flex-col items-center justify-center">
+                <div className="absolute top-4 left-4 z-10">
+                    <button 
+                        onClick={() => setView('home')} 
+                        className="w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center backdrop-blur-sm"
+                    >
+                        <XMarkIcon className="w-6 h-6" />
+                    </button>
+                </div>
+                
+                {hasTorch && (
+                    <div className="absolute top-4 right-4 z-10">
+                        <button 
+                            onClick={toggleTorch} 
+                            className={`w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm transition-colors ${torchEnabled ? 'bg-yellow-400 text-black' : 'bg-black/50 text-white'}`}
+                        >
+                            <span className="text-xl">⚡</span>
+                        </button>
+                    </div>
+                )}
+                
+                <video 
+                    ref={videoRef} 
+                    autoPlay 
+                    playsInline 
+                    muted 
+                    className="w-full h-full object-cover"
+                />
+                
+                <div className="absolute bottom-10 left-0 right-0 flex justify-center pb-8">
+                    <button 
+                        onClick={capturePhoto} 
+                        className="w-20 h-20 bg-white rounded-full border-4 border-zinc-300 flex items-center justify-center active:scale-95 transition-transform shadow-[0_0_0_4px_rgba(255,255,255,0.3)]"
+                    >
+                         <div className="w-16 h-16 bg-white rounded-full border-2 border-zinc-900/10"></div>
+                    </button>
+                </div>
+                
+                {/* Hidden canvas for capture */}
+                <canvas ref={canvasRef} className="hidden" />
+            </div>
+        )}
+
         {/* Scan Options Modal */}
         {isScanOptionsOpen && (
              <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 animate-in fade-in duration-200">
@@ -624,15 +863,7 @@ function App() {
                         onSelect={handleSelectHistoryItem}
                     />
                     <BottomNav />
-                    {/* Hidden Inputs for Camera and Gallery */}
-                    <input 
-                        type="file" 
-                        ref={cameraInputRef} 
-                        accept="image/*" 
-                        capture="environment" 
-                        onChange={handleImageSelect} 
-                        className="hidden" 
-                    />
+                    {/* Hidden Inputs for Gallery (Camera now handled by live view) */}
                     <input 
                         type="file" 
                         ref={galleryInputRef} 

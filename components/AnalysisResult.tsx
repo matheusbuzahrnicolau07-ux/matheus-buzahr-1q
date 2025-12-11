@@ -82,18 +82,19 @@ const AnalysisResult: React.FC<AnalysisResultProps> = ({ data, imageUrl, onSave,
         <img src={imageUrl} alt="Food" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-white dark:to-zinc-950"></div>
         
-        {/* Top Bar */}
-        <div className="absolute top-0 left-0 w-full p-4 flex justify-between items-center z-10 no-print">
+        {/* Top Bar - Z-INDEX AUMENTADO PARA 50 PARA GARANTIR O CLIQUE NO VOLTAR */}
+        <div className="absolute top-0 left-0 w-full p-4 flex justify-between items-center z-50 no-print">
             <button 
                 onClick={onCancel} 
-                className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white border border-white/10 active:scale-95 transition-transform"
+                className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white border border-white/10 active:scale-95 transition-transform cursor-pointer hover:bg-black/60"
+                aria-label="Voltar"
             >
               <ChevronLeftIcon className="w-6 h-6" />
             </button>
             <div className="flex gap-2">
                  <button 
                     onClick={() => setShowDeleteConfirm(!showDeleteConfirm)}
-                    className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white border border-white/10 active:scale-95 transition-transform hover:bg-red-500/50"
+                    className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white border border-white/10 active:scale-95 transition-transform hover:bg-red-500/50 cursor-pointer"
                  >
                     <TrashIcon className="w-5 h-5 text-white" />
                  </button>
@@ -103,7 +104,7 @@ const AnalysisResult: React.FC<AnalysisResultProps> = ({ data, imageUrl, onSave,
 
       {/* Delete Confirmation Modal/Overlay */}
       {showDeleteConfirm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
               <div className="bg-white dark:bg-zinc-900 p-6 rounded-3xl w-full max-w-sm shadow-2xl border border-zinc-200 dark:border-zinc-800 text-center">
                   <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">Excluir registro?</h3>
                   <p className="text-zinc-500 mb-6">Esta ação não pode ser desfeita.</p>

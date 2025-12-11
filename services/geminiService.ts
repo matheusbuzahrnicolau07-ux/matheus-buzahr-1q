@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { NutritionData, User, WorkoutSession, WorkoutSplit } from "../types";
 
@@ -63,13 +64,13 @@ export const analyzeFoodImage = async (base64Image: string): Promise<NutritionDa
       contents: {
         parts: [
           { inlineData: { mimeType: "image/jpeg", data: cleanBase64 } },
-          { text: "Você é um nutricionista brasileiro. Analise a imagem detalhadamente. Identifique **TODOS** os alimentos e bebidas presentes (ex: pratos, copos, latas, garrafas, acompanhamentos). Some os macros de todos os itens. No campo 'foodName', descreva o combo (ex: 'Hambúrguer com Refrigerante' ou 'Café com Pão'). No campo 'ingredients', liste todos os itens e bebidas identificados." },
+          { text: "Você é um nutricionista brasileiro experiente. Analise a imagem detalhadamente.\n\n**CRÍTICO - ESTIMATIVA DE PESO:**\n1. Seja CONSERVADOR com o peso. Um prato feito comum (almoço/jantar) pesa em média **300g a 500g**.\n2. Porções individuais de Escondidinho, Lasanha ou Massas pesam cerca de **300g a 400g**. NÃO estime 1kg (1000g) a menos que a imagem mostre claramente uma travessa familiar gigante com múltiplos utensílios de servir.\n3. Se houver bebidas (latas, copos), some ao total, mas descreva no nome.\n\nIdentifique os alimentos e macros. No campo 'foodName', seja descritivo (ex: 'Escondidinho de Carne Seca com Coca Zero'). No campo 'ingredients', liste tudo." },
         ],
       },
       config: {
         responseMimeType: "application/json",
         responseSchema: analysisSchema,
-        temperature: 0.2,
+        temperature: 0.1, // Temperatura menor para ser mais "frio" e preciso nos dados
       },
     });
 
