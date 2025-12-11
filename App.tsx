@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { User, NutritionData, AnalysisRecord, AppView, UserGoals, MealType } from './types';
 import { analyzeFoodImage } from './services/geminiService';
@@ -315,21 +316,23 @@ function App() {
         let existingUser = await storageService.getUser(userId);
         
         if (existingUser) {
-            // --- USER EXISTS (LOGIN) ---
+            // --- USER EXISTS (LOGIN OU CADASTRO COM EMAIL EXISTENTE) ---
             
-            // VERIFY PASSWORD
-            if (existingUser.password && existingUser.password !== password) {
-                throw new Error("Senha incorreta.");
+            // VERIFICAÇÃO ESTRITA DE SENHA
+            // Se o usuário já possui senha, a digitada DEVE corresponder, não importa se está na tela de login ou cadastro.
+            if (existingUser.password) {
+                if (existingUser.password !== password) {
+                    throw new Error("Senha incorreta.");
+                }
+            } else {
+                // Usuário legado sem senha: salva a senha agora.
+                existingUser.password = password;
+                await storageService.saveUser(existingUser);
             }
 
-            // Update info if re-registering with same email but new name
-            if (name) {
+            // Apenas se a senha estiver correta, permitimos atualizar o nome (fluxo de cadastro com mesmo email)
+            if (name && name !== existingUser.name) {
                 existingUser.name = name;
-                existingUser.password = password; // Update password if re-registering
-                await storageService.saveUser(existingUser);
-            } else if (!existingUser.password) {
-                // Legacy user without password, save it now
-                existingUser.password = password;
                 await storageService.saveUser(existingUser);
             }
             
