@@ -10,7 +10,8 @@ interface OnboardingScreenProps {
 
 // Configurações da régua
 const RULER_STEP_WIDTH = 12; // Largura em pixels de cada passo (tick + gap)
-const RULER_HEIGHT = 64;
+// Aumentado a altura para garantir que os números caibam dentro do scroll area sem serem cortados
+const RULER_HEIGHT = 90; 
 
 // Componente de Seletor Deslizante (Rolar e Digitar) Refinado
 const ScrollablePicker = ({ 
@@ -35,8 +36,6 @@ const ScrollablePicker = ({
     const scrollTimeout = useRef<any>(null);
 
     // Array de valores para renderizar na régua
-    // Otimização: Renderizar apenas ticks visíveis seria ideal para ranges gigantes, 
-    // mas para ~200 itens (peso/altura), renderizar tudo é performático o suficiente e mais simples.
     const range = Array.from({ length: max - min + 1 }, (_, i) => min + i);
 
     // Sincroniza input local quando value muda externamente (e não está focado)
@@ -53,7 +52,6 @@ const ScrollablePicker = ({
         if (scrollRef.current) {
             const index = value - min;
             // Centralizar: scrollLeft = (index * width)
-            // O padding do container cuida do alinhamento visual
             const targetScroll = index * RULER_STEP_WIDTH;
             
             scrollRef.current.scrollTo({
@@ -160,9 +158,9 @@ const ScrollablePicker = ({
             </div>
 
             {/* Régua Interativa */}
-            <div className="relative h-20 w-full select-none">
+            <div className="relative w-full select-none" style={{ height: RULER_HEIGHT }}>
                  {/* Indicador Central */}
-                 <div className="absolute left-1/2 top-0 bottom-0 w-1 -translate-x-1/2 z-20 flex flex-col items-center justify-end pointer-events-none">
+                 <div className="absolute left-1/2 top-0 w-1 -translate-x-1/2 z-20 flex flex-col items-center pointer-events-none">
                       <div className="w-1 h-8 bg-emerald-500 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.8)]"></div>
                  </div>
 
@@ -174,15 +172,14 @@ const ScrollablePicker = ({
                  <div 
                     ref={scrollRef}
                     onScroll={handleScroll}
-                    className="overflow-x-auto no-scrollbar h-full flex items-end cursor-grab active:cursor-grabbing pb-2"
+                    className="overflow-x-auto no-scrollbar h-full flex items-start cursor-grab active:cursor-grabbing"
                     style={{ 
                         // Padding left/right de 50% da largura do container para centralizar o primeiro/ultimo item
-                        // Usamos calc(50% - 1px) para fine tuning visual com o indicador de 2px
                         paddingLeft: 'calc(50% - 1px)', 
                         paddingRight: 'calc(50% - 1px)' 
                     }}
                  >
-                    <div className="flex h-10 items-end">
+                    <div className="flex h-full items-start pt-2">
                         {range.map((num) => {
                             const isMajor = num % 10 === 0;
                             const isMedium = num % 5 === 0;
@@ -190,13 +187,14 @@ const ScrollablePicker = ({
                             return (
                                 <div 
                                     key={num} 
-                                    className="flex flex-col items-center justify-end flex-shrink-0"
-                                    style={{ width: `${RULER_STEP_WIDTH}px` }}
+                                    className="flex flex-col items-center justify-start flex-shrink-0 relative"
+                                    style={{ width: `${RULER_STEP_WIDTH}px`, height: '100%' }}
                                 >
+                                    {/* Tick Line */}
                                     <div 
                                         className={`w-[2px] rounded-full transition-colors duration-200 ${
                                             num === value 
-                                            ? 'bg-transparent' // Esconde o tick sob o indicador principal para não duplicar visualmente
+                                            ? 'bg-transparent' // Esconde para não sobrepor o indicador principal
                                             : isMajor 
                                                 ? 'bg-zinc-500 h-8' 
                                                 : isMedium 
@@ -204,8 +202,10 @@ const ScrollablePicker = ({
                                                     : 'bg-zinc-700 h-3'
                                         }`} 
                                     />
+                                    
+                                    {/* Number - Renderizado ABSOLUTO RELATIVO AO TICK, não ao container global */}
                                     {isMajor && (
-                                        <span className={`absolute -bottom-6 text-[10px] font-medium transform -translate-x-1/2 ${num === value ? 'text-emerald-500 font-bold opacity-0' : 'text-zinc-600'}`}>
+                                        <span className={`absolute top-10 text-[10px] font-medium transform -translate-x-1/2 transition-opacity ${num === value ? 'opacity-0' : 'text-zinc-600'}`}>
                                             {num}
                                         </span>
                                     )}

@@ -64,7 +64,7 @@ export const analyzeFoodImage = async (base64Image: string): Promise<NutritionDa
       contents: {
         parts: [
           { inlineData: { mimeType: "image/jpeg", data: cleanBase64 } },
-          { text: "Você é um nutricionista brasileiro experiente. Analise a imagem detalhadamente.\n\n**CRÍTICO - ESTIMATIVA DE PESO:**\n1. Seja CONSERVADOR com o peso. Um prato feito comum (almoço/jantar) pesa em média **300g a 500g**.\n2. Porções individuais de Escondidinho, Lasanha ou Massas pesam cerca de **300g a 400g**. NÃO estime 1kg (1000g) a menos que a imagem mostre claramente uma travessa familiar gigante com múltiplos utensílios de servir.\n3. Se houver bebidas (latas, copos), some ao total, mas descreva no nome.\n\nIdentifique os alimentos e macros. No campo 'foodName', seja descritivo (ex: 'Escondidinho de Carne Seca com Coca Zero'). No campo 'ingredients', liste tudo." },
+          { text: "ATENÇÃO: Analise TODOS os alimentos visíveis na imagem.\n\n1. **Identificação Múltipla**: Se houver vários itens (ex: Prato principal + Fruta + Bebida), o 'foodName' DEVE listar todos (ex: 'Omelete com Banana e Uvas').\n2. **Soma de Macros**: Calcule e SOME as calorias, carboidratos, proteínas e gorduras de TODOS os itens visíveis. O total deve refletir a refeição inteira.\n3. **Estimativa de Peso**: Seja realista. Um prato com frutas geralmente pesa entre 300g a 500g total. Não estime pesos excessivos (1kg+) a menos que seja uma travessa familiar.\n4. **Ingredientes**: Liste os ingredientes de todos os itens identificados.\n\nRetorne JSON estrito conforme schema." },
         ],
       },
       config: {
