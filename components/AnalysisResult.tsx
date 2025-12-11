@@ -82,8 +82,8 @@ const AnalysisResult: React.FC<AnalysisResultProps> = ({ data, imageUrl, onSave,
         <img src={imageUrl} alt="Food" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-white dark:to-zinc-950"></div>
         
-        {/* Top Bar - Z-INDEX AUMENTADO PARA 50 PARA GARANTIR O CLIQUE NO VOLTAR */}
-        <div className="absolute top-0 left-0 w-full p-4 flex justify-between items-center z-50 no-print">
+        {/* Top Bar - CORRIGIDO PADDING TOP NOTCH */}
+        <div className="absolute top-0 left-0 w-full pt-[calc(env(safe-area-inset-top)+1rem)] px-4 pb-4 flex justify-between items-center z-50 no-print">
             <button 
                 onClick={onCancel} 
                 className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white border border-white/10 active:scale-95 transition-transform cursor-pointer hover:bg-black/60"

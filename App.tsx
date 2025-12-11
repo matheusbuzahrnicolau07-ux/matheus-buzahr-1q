@@ -714,7 +714,7 @@ function App() {
         {/* Custom Live Camera View with Torch Control */}
         {view === 'live_camera' && (
             <div className="fixed inset-0 bg-black z-[100] flex flex-col items-center justify-center">
-                <div className="absolute top-4 left-4 z-10">
+                <div className="absolute top-0 left-0 pt-[calc(env(safe-area-inset-top)+1rem)] pl-4 z-10">
                     <button 
                         onClick={() => setView('home')} 
                         className="w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center backdrop-blur-sm"
@@ -724,7 +724,7 @@ function App() {
                 </div>
                 
                 {hasTorch && (
-                    <div className="absolute top-4 right-4 z-10">
+                    <div className="absolute top-0 right-0 pt-[calc(env(safe-area-inset-top)+1rem)] pr-4 z-10">
                         <button 
                             onClick={toggleTorch} 
                             className={`w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm transition-colors ${torchEnabled ? 'bg-yellow-400 text-black' : 'bg-black/50 text-white'}`}
@@ -904,7 +904,7 @@ function App() {
             )}
 
             {view === 'progress' && (
-                <div className="min-h-screen flex flex-col pb-32 no-scrollbar p-6 animate-in fade-in duration-500 bg-gray-50 dark:bg-zinc-950">
+                <div className="min-h-screen flex flex-col pb-32 no-scrollbar p-6 animate-in fade-in duration-500 bg-gray-50 dark:bg-zinc-950 pt-[calc(env(safe-area-inset-top)+1rem)]">
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-3xl font-black text-zinc-900 dark:text-white">Seu Progresso</h2>
                         <button 
@@ -987,7 +987,8 @@ function App() {
             {view === 'home' && user && (
                 <div className="min-h-screen flex flex-col pb-32 no-scrollbar animate-in fade-in duration-500 bg-gray-50 dark:bg-zinc-950">
                   
-                  <div className="px-6 pt-12 pb-2 flex justify-between items-center sticky top-0 z-30 bg-gray-50/80 dark:bg-zinc-950/80 backdrop-blur-xl transition-colors">
+                  {/* Header - CORRIGIDO PADDING TOP NOTCH */}
+                  <div className="px-6 pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-2 flex justify-between items-center sticky top-0 z-30 bg-gray-50/80 dark:bg-zinc-950/80 backdrop-blur-xl transition-colors">
                     <div className="flex items-center gap-3">
                          <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-500 font-bold border border-emerald-500/20">
                              {user?.name.charAt(0).toUpperCase()}

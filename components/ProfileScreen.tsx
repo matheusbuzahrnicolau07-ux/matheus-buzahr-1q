@@ -72,8 +72,8 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ user, onSave, onBack, onL
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-950 flex flex-col p-6 text-zinc-900 dark:text-white pb-24 animate-in fade-in slide-in-from-right-10 duration-300">
       
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8 sticky top-0 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl z-20 py-2">
+      {/* Header - CORRIGIDO PADDING TOP NOTCH */}
+      <div className="flex items-center justify-between mb-8 sticky top-0 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl z-20 pt-[calc(env(safe-area-inset-top)+1rem)] pb-2 -mx-6 px-6 border-b border-zinc-100 dark:border-zinc-900/50">
         <div className="flex items-center gap-4">
           <button 
             onClick={onBack} 

@@ -43,8 +43,11 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, onSkip }) => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col p-8 justify-center animate-in fade-in duration-500 bg-zinc-950">
-        <button onClick={onSkip} className="absolute top-8 left-8 w-10 h-10 bg-zinc-900 rounded-full flex items-center justify-center text-zinc-400 active:scale-95 transition-transform border border-zinc-800">
+    <div className="min-h-screen flex flex-col p-8 justify-center animate-in fade-in duration-500 bg-zinc-950 relative">
+        <button 
+            onClick={onSkip} 
+            className="absolute top-[calc(env(safe-area-inset-top)+2rem)] left-8 w-10 h-10 bg-zinc-900 rounded-full flex items-center justify-center text-zinc-400 active:scale-95 transition-transform border border-zinc-800"
+        >
             <ChevronLeftIcon className="w-5 h-5" />
         </button>
 

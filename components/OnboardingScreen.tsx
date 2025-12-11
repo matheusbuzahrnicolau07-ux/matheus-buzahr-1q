@@ -118,19 +118,20 @@ const ScrollablePicker = ({
             </div>
 
             {/* Display Principal (Input + Botões) */}
-            <div className="flex items-center justify-center gap-6 mb-8 relative z-20">
+            <div className="flex items-center justify-center gap-4 mb-8 relative z-20 px-2">
                 <button 
                     onClick={() => {
                         const v = Math.max(min, value - 1);
                         onChange(v);
                         setLocalValue(v.toString());
                     }}
-                    className="w-12 h-12 rounded-full bg-zinc-800/50 text-zinc-400 hover:text-white flex items-center justify-center active:scale-90 transition-all border border-zinc-700/30"
+                    className="w-12 h-12 flex-shrink-0 rounded-full bg-zinc-800/50 text-zinc-400 hover:text-white flex items-center justify-center active:scale-90 transition-all border border-zinc-700/30"
                 >
                     <MinusIcon className="w-5 h-5" />
                 </button>
 
-                <div className="relative flex items-baseline justify-center min-w-[120px]">
+                {/* CORREÇÃO AQUI: Mudado para Flexbox com gap para evitar sobreposição */}
+                <div className="flex items-baseline justify-center gap-1 min-w-[120px]">
                     <input
                         type="text"
                         inputMode="numeric"
@@ -139,10 +140,10 @@ const ScrollablePicker = ({
                         onChange={handleInputChange}
                         onBlur={handleBlur}
                         onFocus={(e) => { setIsFocused(true); e.target.select(); }}
-                        className="bg-transparent text-7xl font-black text-white text-center w-full focus:outline-none p-0 m-0 border-none transition-colors selection:bg-emerald-500/30"
-                        style={{ width: `${Math.max(2, localValue.length)}ch` }}
+                        className="bg-transparent text-6xl sm:text-7xl font-black text-white text-center focus:outline-none p-0 m-0 border-none transition-colors selection:bg-emerald-500/30 w-auto"
+                        style={{ width: `${Math.max(1, localValue.length)}ch`, maxWidth: '100%' }}
                     />
-                    <span className="text-lg font-bold text-emerald-500 absolute -right-4 top-2">{unit}</span>
+                    <span className="text-lg font-bold text-emerald-500 flex-shrink-0">{unit}</span>
                 </div>
 
                 <button 
@@ -151,7 +152,7 @@ const ScrollablePicker = ({
                         onChange(v);
                         setLocalValue(v.toString());
                     }}
-                    className="w-12 h-12 rounded-full bg-zinc-800/50 text-zinc-400 hover:text-white flex items-center justify-center active:scale-90 transition-all border border-zinc-700/30"
+                    className="w-12 h-12 flex-shrink-0 rounded-full bg-zinc-800/50 text-zinc-400 hover:text-white flex items-center justify-center active:scale-90 transition-all border border-zinc-700/30"
                 >
                     <PlusIcon className="w-5 h-5" />
                 </button>
@@ -300,7 +301,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ user, onComplete })
   );
 
   return (
-    <div className="min-h-screen flex flex-col p-6 text-white pb-10 bg-zinc-950">
+    <div className="min-h-screen flex flex-col p-6 text-white pb-10 bg-zinc-950 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
       
       {/* Header / Progress */}
       <div className="flex items-center justify-between mt-4 mb-8">

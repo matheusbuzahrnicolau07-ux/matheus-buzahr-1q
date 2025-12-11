@@ -44,8 +44,8 @@ const HistoryScreen: React.FC<HistoryScreenProps> = ({ history, onBack, onSelect
 
   return (
     <div className="flex flex-col h-full bg-gray-50 dark:bg-zinc-950 pb-32 no-scrollbar animate-in fade-in duration-300">
-      {/* Header */}
-      <div className="bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md p-4 sticky top-0 z-20 flex items-center gap-3 border-b border-zinc-200 dark:border-zinc-900">
+      {/* Header - CORRIGIDO PADDING TOP NOTCH */}
+      <div className="bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md sticky top-0 z-20 flex items-center gap-3 border-b border-zinc-200 dark:border-zinc-900 pt-[calc(env(safe-area-inset-top)+1rem)] pb-4 px-4">
         <button onClick={onBack} className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 flex items-center justify-center text-zinc-800 dark:text-zinc-100 transition-colors">
             <ChevronLeftIcon className="w-6 h-6" />
         </button>
@@ -66,7 +66,7 @@ const HistoryScreen: React.FC<HistoryScreenProps> = ({ history, onBack, onSelect
       ) : (
           <>
             {/* Seletor de Datas Horizontal */}
-            <div className="pt-4 pb-2 px-4 overflow-x-auto no-scrollbar flex gap-2 sticky top-[73px] z-10 bg-gray-50 dark:bg-zinc-950/95 backdrop-blur-sm">
+            <div className="pt-4 pb-2 px-4 overflow-x-auto no-scrollbar flex gap-2 sticky top-[calc(env(safe-area-inset-top)+73px)] z-10 bg-gray-50 dark:bg-zinc-950/95 backdrop-blur-sm">
                 {sortedDates.map((date) => {
                     const isSelected = selectedDateKey === date;
                     // Formatar data para "Seg, 12 Out"

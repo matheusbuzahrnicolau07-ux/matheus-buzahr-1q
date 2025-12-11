@@ -164,8 +164,8 @@ const WorkoutScreen: React.FC<WorkoutScreenProps> = ({ user, onBack, date }) => 
   return (
     <div className="flex flex-col h-full bg-zinc-950 pb-32 no-scrollbar animate-in fade-in duration-300 min-h-screen text-white">
         
-        {/* Header */}
-        <div className="bg-zinc-900/80 backdrop-blur-md p-4 sticky top-0 z-20 flex items-center justify-between border-b border-zinc-800">
+        {/* Header - CORRIGIDO PADDING TOP PARA NOTCH */}
+        <div className="bg-zinc-900/80 backdrop-blur-md sticky top-0 z-20 flex items-center justify-between border-b border-zinc-800 pt-[calc(env(safe-area-inset-top)+1rem)] pb-4 px-4">
             <div className="flex items-center gap-3">
                 <button onClick={onBack} className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 active:scale-95 transition-transform">
                      <ChevronLeftIcon className="w-6 h-6" />
