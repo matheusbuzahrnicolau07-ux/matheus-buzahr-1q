@@ -1,0 +1,7 @@
+{
+  "name": "Copy of NutriVision AI",
+  "description": "Aplicativo de análise nutricional de alimentos utilizando IA para identificação automática e cálculo de macros.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
